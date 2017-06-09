@@ -2,23 +2,19 @@
 # Subset the training data for faster turnaround.
 
 import tensorflow as tf
-import numpy as np
 
 from notmnist.dataset import loadDataset
 from notmnist.settings import *
+from notmnist.utils import accuracy
 
 train_subset = 100000
-ds = loadDataset('notMNIST_reformatted.pickle')
+ds = loadDataset('notMNIST_reformatted_1d_images.pickle')
 train_dataset = ds['train_dataset']
 train_labels = ds['train_labels']
 valid_dataset = ds['valid_dataset']
 valid_labels = ds['valid_labels']
 test_dataset = ds['test_dataset']
 test_labels = ds['test_labels']
-
-def accuracy(predictions, labels):
-  return (100.0 * np.sum(np.argmax(predictions, 1) == np.argmax(labels, 1))
-          / predictions.shape[0])
 
 def buildAndTrainModel():
     graph = tf.Graph()

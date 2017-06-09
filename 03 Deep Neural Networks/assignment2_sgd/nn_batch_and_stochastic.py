@@ -13,7 +13,7 @@ valid_labels = ds['valid_labels']
 test_dataset = ds['test_dataset']
 test_labels = ds['test_labels']
 
-from assignment2_sgd.logreg_batch_graddescent import accuracy
+from notmnist.utils import accuracy
 
 exampleWidth = image_size * image_size
 def buildAndTrainModel(hiddenSize=100, learnRate=0.5, learnRateDecay=1.0, optimizeSteps = 1000, stochastic=False,

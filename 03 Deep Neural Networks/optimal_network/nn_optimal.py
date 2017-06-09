@@ -104,7 +104,7 @@ def buildAndTrainModel(layers=[500], learnRate=0.01, momentum=0.95, dropout=0.5,
         valid, test = tf.constant(valid_dataset), tf.constant(test_dataset)
         validOutput, testOutput = network.out(valid), network.out(test)
     ## run model optimization
-    from assignment2_sgd.logreg_batch_graddescent import accuracy
+    from notmnist.utils import accuracy
     with tf.Session(graph=graph) as session:
         tf.global_variables_initializer().run()
         for s in range(optimizeSteps):

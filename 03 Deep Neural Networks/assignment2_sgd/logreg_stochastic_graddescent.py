@@ -48,7 +48,7 @@ def buildAndTrainModel():
     #num_steps = 3001
     num_steps = 10001
 
-    from assignment2_sgd.logreg_batch_graddescent import accuracy
+    from notmnist.utils import accuracy
     with tf.Session(graph=graph) as session:
       tf.global_variables_initializer().run()
       print("Initialized")
