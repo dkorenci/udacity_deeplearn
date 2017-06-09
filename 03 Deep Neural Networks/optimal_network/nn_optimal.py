@@ -10,7 +10,7 @@ from tensorflow.python.framework import dtypes
 from notmnist.dataset import loadDataset
 from notmnist.settings import *
 
-ds = loadDataset('notMNIST_reformatted.pickle')
+ds = loadDataset('notMNIST_reformatted_1d_images.pickle')
 train_dataset = ds['train_dataset']
 train_labels = ds['train_labels']
 valid_dataset = ds['valid_dataset']
@@ -129,5 +129,5 @@ def buildAndTrainModel(layers=[500], learnRate=0.01, momentum=0.95, dropout=0.5,
         print('TEST accuracy: %.4f' % accuracy(test_res, test_labels))
 
 if __name__ == '__main__':
-    buildAndTrainModel(layers=[200,200], batchSize=500, learnRate=0.00001, dropout=0.5,
-                       momentum=0.8, decay=0.999, decayStart=10000, optimizeSteps=20000)
+    buildAndTrainModel(layers=[200,200], batchSize=128, learnRate=0.00001, dropout=0.5,
+                       momentum=0.95, decay=0.99, decayStart=8000, optimizeSteps=30000)
