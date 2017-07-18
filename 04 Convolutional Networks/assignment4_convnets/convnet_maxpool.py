@@ -59,7 +59,7 @@ def maxpoolConvNet(batch_size = 16, patch_size = 5, depth = 16, num_hidden = 64)
             tf.nn.softmax_cross_entropy_with_logits(labels=tf_train_labels, logits=logits))
 
         # Optimizer.
-        optimizer = tf.train.GradientDescentOptimizer(0.03).minimize(loss)
+        optimizer = tf.train.GradientDescentOptimizer(0.01).minimize(loss)
 
         # Predictions for the training, validation, and test data.
         train_prediction = tf.nn.softmax(logits)
@@ -86,4 +86,4 @@ def maxpoolConvNet(batch_size = 16, patch_size = 5, depth = 16, num_hidden = 64)
         print('Test accuracy: %.1f%%' % accuracy(test_prediction.eval(), test_labels))
 
 if __name__ == '__main__':
-    maxpoolConvNet(batch_size=16, depth=10, num_hidden=64, patch_size=5)
+    maxpoolConvNet(batch_size=64, depth=5, num_hidden=128, patch_size=8)
