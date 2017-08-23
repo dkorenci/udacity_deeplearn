@@ -10,9 +10,9 @@ from matplotlib import pylab
 from six.moves import range
 from sklearn.manifold import TSNE
 
-from assignment5_word2vec.dataset import build_dataset, get_data, vocabulary_size
+from assignment5_word2vec.dataset import vocabulary_size, loadDataset
 
-data, count, dictionary, reverse_dictionary = build_dataset(get_data(), vocabulary_size)
+data, count, dictionary, reverse_dictionary = loadDataset()
 
 data_index = 0
 
@@ -48,7 +48,7 @@ def test_batch():
         print('    batch:', [reverse_dictionary[bi] for bi in batch])
         print('    labels:', [reverse_dictionary[li] for li in labels.reshape(8)])
 
-def train_skipgram():
+def train_skipgram(learnRate=1.0, num_sampled = 64):
     batch_size = 128
     embedding_size = 128  # Dimension of the embedding vector.
     skip_window = 1  # How many words to consider left and right.
@@ -59,11 +59,11 @@ def train_skipgram():
     valid_size = 16  # Random set of words to evaluate similarity on.
     valid_window = 100  # Only pick dev samples in the head of the distribution.
     valid_examples = np.array(random.sample(range(valid_window), valid_size))
-    num_sampled = 64  # Number of negative examples to sample.
+     # Number of negative examples to sample.
 
     graph = tf.Graph()
 
-    with graph.as_default(), tf.device('/cpu:0'):
+    with graph.as_default(): #, tf.device('/cpu:0'):
         # Input data.
         train_dataset = tf.placeholder(tf.int32, shape=[batch_size])
         train_labels = tf.placeholder(tf.int32, shape=[batch_size, 1])
@@ -91,7 +91,7 @@ def train_skipgram():
         # optimizer's `minimize` method will by default modify all variable quantities
         # that contribute to the tensor it is passed.
         # See docs on `tf.train.Optimizer.minimize()` for more details.
-        optimizer = tf.train.AdagradOptimizer(1.0).minimize(loss)
+        optimizer = tf.train.AdagradOptimizer(learning_rate=learnRate).minimize(loss)
 
         # Compute the similarity between minibatch examples and all embeddings.
         # We use the cosine distance:
@@ -135,4 +135,5 @@ def train_skipgram():
 
 if __name__ == '__main__':
     #test_batch()
-    train_skipgram()
+    #train_skipgram(learnRate=0.1)
+    train_skipgram(num_sampled=128)
