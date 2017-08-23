@@ -70,6 +70,20 @@ def test_build():
     print('Sample data', data[:10])
     del words
 
+import pickle
+
+def createSaveDataset():
+    dset = build_dataset(get_data(), vocabulary_size)
+    f = open('text8_processed.pickle', 'wb')
+    pickle.dump(dset, f, pickle.HIGHEST_PROTOCOL)
+    f.close()
+
+def loadDataset():
+    dset = pickle.load(open('text8_processed.pickle', 'rb'))
+    data, count, dictionary, reverse_dictionary = dset
+    return data, count, dictionary, reverse_dictionary
+
 if __name__ == '__main__':
     #print(len(get_data()))
-    test_build()
+    #test_build()
+    createSaveDataset()
