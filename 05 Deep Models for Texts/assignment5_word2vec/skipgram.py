@@ -2,13 +2,9 @@ from __future__ import print_function
 import collections
 import math
 import numpy as np
-import os
 import random
 import tensorflow as tf
-import zipfile
-from matplotlib import pylab
 from six.moves import range
-from sklearn.manifold import TSNE
 
 from assignment5_word2vec.dataset import vocabulary_size, loadDataset
 
@@ -48,10 +44,9 @@ def test_batch():
         print('    batch:', [reverse_dictionary[bi] for bi in batch])
         print('    labels:', [reverse_dictionary[li] for li in labels.reshape(8)])
 
-def train_skipgram(learnRate=1.0, num_sampled = 64):
+def train_skipgram(learnRate=1.0, num_sampled = 64, train_steps = 100001, window_size = 1):
     batch_size = 128
     embedding_size = 128  # Dimension of the embedding vector.
-    skip_window = 1  # How many words to consider left and right.
     num_skips = 2  # How many times to reuse an input to generate a label.
     # We pick a random validation set to sample nearest neighbors. here we limit the
     # validation samples to the words that have a low numeric ID, which by
@@ -101,15 +96,13 @@ def train_skipgram(learnRate=1.0, num_sampled = 64):
             normalized_embeddings, valid_dataset)
         similarity = tf.matmul(valid_embeddings, tf.transpose(normalized_embeddings))
 
-    num_steps = 100001
-
     with tf.Session(graph=graph) as session:
       tf.global_variables_initializer().run()
       print('Initialized')
       average_loss = 0
-      for step in range(num_steps):
+      for step in range(train_steps):
         batch_data, batch_labels = generate_batch(
-          batch_size, num_skips, skip_window)
+          batch_size, num_skips, window_size)
         feed_dict = {train_dataset : batch_data, train_labels : batch_labels}
         _, l = session.run([optimizer, loss], feed_dict=feed_dict)
         average_loss += l
@@ -132,6 +125,7 @@ def train_skipgram(learnRate=1.0, num_sampled = 64):
               log = '%s %s,' % (log, close_word)
             print(log)
       final_embeddings = normalized_embeddings.eval()
+    return final_embeddings
 
 if __name__ == '__main__':
     #test_batch()
