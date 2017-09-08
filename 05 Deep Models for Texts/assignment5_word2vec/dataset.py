@@ -18,7 +18,9 @@ def maybe_download(filename, expected_bytes):
     print(statinfo.st_size)
     raise Exception(
       'Failed to verify ' + filename + '. Can you get to it with a browser?')
-  return filename
+  from os import path
+  modulefolder = path.dirname(__file__)
+  return path.join(modulefolder, filename)
 
 def read_data(filename):
     """Extract the first file enclosed in a zip file as a list of words"""
