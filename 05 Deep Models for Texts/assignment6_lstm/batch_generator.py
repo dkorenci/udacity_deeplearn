@@ -48,6 +48,7 @@ def batches2string(batches):
 
 def testGenerator():
     valid_text, train_text = validTrainSplit()
+    print(type(train_text), train_text[:100])
     train_batches = BatchGenerator(train_text)
     valid_batches = BatchGenerator(valid_text, 1, 1)
     print(batches2string(train_batches.next()))
