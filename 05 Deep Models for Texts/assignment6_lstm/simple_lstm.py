@@ -5,7 +5,7 @@ from assignment6_lstm.dataset import vocabulary_size
 from assignment6_lstm.probability_utils import logprob, sample, random_distribution
 
 
-def simpleLstm(num_nodes=64, num_unrollings=10, batch_size=64):
+def simpleLstm(num_nodes=64, num_unrollings=10, batch_size=64, num_steps = 7001):
     '''
     :param num_nodes: number of hidden units in (various components of) the model
     :param num_unrollings: max. length to which the cell is replicated
@@ -104,14 +104,13 @@ def simpleLstm(num_nodes=64, num_unrollings=10, batch_size=64):
             sample_prediction = tf.nn.softmax(tf.nn.xw_plus_b(sample_output, w, b))
 
     # learning params
-    num_steps = 7001
     summary_frequency = 100
     # prepare batch generator
     from assignment6_lstm.dataset import validTrainSplit
     from assignment6_lstm.batch_generator import BatchGenerator, characters
     valid_text, train_text = validTrainSplit()
     valid_size = len(valid_text)
-    train_batches = BatchGenerator(train_text)
+    train_batches = BatchGenerator(train_text, batch_size=batch_size, num_unrollings=num_unrollings)
     valid_batches = BatchGenerator(valid_text, 1, 1)
 
     # run learning
@@ -161,4 +160,4 @@ def simpleLstm(num_nodes=64, num_unrollings=10, batch_size=64):
             valid_logprob / valid_size)))
 
 if __name__ == '__main__':
-    simpleLstm()
+    simpleLstm(num_nodes=128, batch_size=128, num_unrollings=50, num_steps=20001)

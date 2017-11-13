@@ -24,11 +24,11 @@ def plotSkipgram(num_points = 400):
     plot(emb2d, words)
 
 def plotCbow(num_points = 400):
-    emb = train_cbow(train_steps=100001, window_size=2)
+    emb = train_cbow(train_steps=200001, window_size=2)
     emb2d = reduce(emb[1:num_points + 1, :])
     words = [reverse_dictionary[i] for i in range(1, num_points + 1)]
     plot(emb2d, words)
 
 if __name__ == '__main__':
-    plotSkipgram()
-    #plotCbow()
+    #plotSkipgram()
+    plotCbow()

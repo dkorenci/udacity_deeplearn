@@ -16,7 +16,7 @@ def read_data(filename):
 def getData():
     return read_data(maybe_download('text8.zip', 31344016))
 
-def validTrainSplit(valid_size = 1000):
+def validTrainSplit(valid_size = 1000, verbose=False):
     '''
     Split dataset into valid and train.
     '''
@@ -24,8 +24,9 @@ def validTrainSplit(valid_size = 1000):
     valid_text = text[:valid_size]
     train_text = text[valid_size:]
     train_size = len(train_text)
-    #print(train_size, train_text[:64])
-    #print(valid_size, valid_text[:64])
+    if verbose:
+        print(train_size, train_text[:64])
+        print(valid_size, valid_text[:64])
     return valid_text, train_text
 
 vocabulary_size = len(string.ascii_lowercase) + 1  # [a-z] + ' '
@@ -44,6 +45,6 @@ def id2char(dictid):
     else: return ' '
 
 if __name__ == '__main__':
-    #validDataset()
+    validTrainSplit(verbose=True)
     print(char2id('a'), char2id('z'), char2id(' '), char2id('ï'))
     print(id2char(1), id2char(26), id2char(0))
