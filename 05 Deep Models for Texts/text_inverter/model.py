@@ -33,31 +33,54 @@ class InvertingLSTM():
             self.correctOutBatch = tf.reverse(self.inputBatch, [1], name='correct_output')
 
     def __buildNetwork(self):
+        def buildLSTMCell():
+            def cell():
+                c = BasicLSTMCell(num_units=self.networkSize)
+                c = DropoutWrapper(c, output_keep_prob=self.dropout)
+                return c
+
+            if self.depth > 1:
+                cell = MultiRNNCell([cell() for _ in range(self.depth)])
+            else:
+                cell = cell()
+            return cell
         with tf.name_scope('coding_network'), tf.variable_scope('coding'):
             #with tf.variable_scope("model", reuse=True):
-            ccell = self.__buildLSTMCell()
+            ccell = buildLSTMCell()
             initState = ccell.zero_state(self.batchSize, tf.float32)
             self.cout, self.cstate = \
                 tf.nn.dynamic_rnn(ccell, self.inputBatch, initial_state=initState)
         with tf.name_scope('decoding_network'), tf.variable_scope('decoding'):
-            dcell = self.__buildLSTMCell()
+            dcell = buildLSTMCell()
             # all zeros for now, but it can be passed self.cout as the first element
             self.decodeInput = tf.zeros((self.batchSize, self.seqSize, self.alphabetSize),
                                         dtype=tf.float32)
-            self.dout, self.dstate = \
-                tf.nn.dynamic_rnn(dcell, self.decodeInput, initial_state=self.cstate)
+            # take output, ignore state
+            self.dout, _ = tf.nn.dynamic_rnn(dcell, self.decodeInput, initial_state=self.cstate)
+            self.doutFlat = tf.reshape(self.dout, [-1, self.networkSize], name='output_flat')
 
-    def __buildLSTMCell(self):
-        def cell():
-            c = BasicLSTMCell(num_units=self.networkSize)
-            c = DropoutWrapper(c, output_keep_prob=self.dropout)
-            return c
-        if self.depth > 1: cell = MultiRNNCell([cell() for _ in range(self.depth)])
-        else: cell = cell()
-        return cell
+    def __buildLoss(self):
+        '''
+        Build loss function based on matching the output
+        of the decoding network and the inverted input characters
+        '''
+        with tf.name_scope('predictions'):
+            self.softmaxW = tf.Variable(tf.truncated_normal(
+                                 (self.networkSize, self.alphabetSize), stddev=0.1),
+                                 name='softmax_w')
+            self.softmaxB = tf.Variable(tf.zeros(self.alphabetSize), name='softmax_b')
+            self.doutLogits = tf.matmul(self.doutFlat, self.softmaxW)+self.softmaxB
+            self.predictions = tf.nn.softmax(self.doutLogits, name='predictions')
 
-    def __buildDecodingLSTM(self): pass
+        with tf.name_scope('loss'):
+            self.outputReshaped = tf.reshape(self.correctOutBatch, self.doutLogits.get_shape(),
+                                        name='output_reshaped')
+            self.loss = tf.nn.softmax_cross_entropy_with_logits(
+                logits= self.doutLogits, labels=self.outputReshaped, name='loss'
+            )
+            self.cost = tf.reduce_mean(self.loss, name='cost')
 
+    def __buildOptimizer(self): pass
 
     def evalInputs(self, inBatch):
         with tf.Session() as sess:
@@ -74,9 +97,20 @@ class InvertingLSTM():
             printt(dout); printt(dstate)
             print(tf.trainable_variables())
 
-    def __buildLoss(self): pass
+    def evalOutput(self, inBatch):
+        with tf.Session() as sess:
+            sess.run(tf.global_variables_initializer())
+            dout, doutFlat = sess.run([self.dout, self.doutFlat],
+                                    feed_dict={self.rawBatch: inBatch})
+            printt(dout); printt(doutFlat)
 
-    def __buildOptimizer(self): pass
+    def evalLoss(self, inBatch):
+        with tf.Session() as sess:
+            sess.run(tf.global_variables_initializer())
+            res = sess.run([self.predictions, self.outputReshaped, self.loss],
+                                    feed_dict={self.rawBatch: inBatch})
+            for v in res:
+                print(v)
 
 def printt(t):
     ''' Print tensor '''
@@ -90,8 +124,10 @@ def test():
         [ 1, 2, 0, 2 ],
         [ 2, 0, 1, 0 ]
     ]
-    model.evalInputs(batch)
-    model.evalNetwork(batch)
+    #model.evalInputs(batch)
+    #model.evalNetwork(batch)
+    #model.evalOutput(batch)
+    model.evalLoss(batch)
 
 if __name__ == '__main__':
     test()
