@@ -5,7 +5,8 @@ from tensorflow.contrib.rnn import MultiRNNCell
 
 class InvertingLSTM():
 
-    def __init__(self, seqSize, alphabetSize, batchSize, networkSize, depth=1, dropout=0.5):
+    def __init__(self, seqSize, alphabetSize, batchSize, networkSize,
+                        learningRate=0.01, depth=1, dropout=0.5):
         '''
         :param seqSize: lenght of sequences the net will be trained on
         :param depth: depth of LSTM, number of stacked cells
@@ -17,6 +18,7 @@ class InvertingLSTM():
         self.seqSize, self.depth = seqSize, depth
         self.alphabetSize, self.batchSize = alphabetSize, batchSize
         self.networkSize = networkSize; self.dropout = dropout
+        self.learningRate = learningRate
         self.__buildInputs()
         self.__buildNetwork()
         self.__buildLoss()
@@ -80,7 +82,16 @@ class InvertingLSTM():
             )
             self.cost = tf.reduce_mean(self.loss, name='cost')
 
-    def __buildOptimizer(self): pass
+    def __buildOptimizer(self):
+        with tf.name_scope('optimizer'):
+            tvars = tf.trainable_variables()
+            # todo see structure of gradients
+            grad = tf.gradients(self.loss, tvars)
+            grad, _ = tf.clip_by_global_norm(grad, 5)
+            # todo use avg. clipping
+            # grad, _ = tf.clip_by_average_norm(grad)
+            self.optimizer = tf.train.AdamOptimizer(self.learningRate)
+            self.optimizeOp = self.optimizer.apply_gradients(zip(grad, tvars))
 
     def evalInputs(self, inBatch):
         with tf.Session() as sess:
@@ -112,6 +123,16 @@ class InvertingLSTM():
             for v in res:
                 print(v)
 
+    def evalOptimizer(self, inBatch):
+        with tf.Session() as sess:
+            sess.run(tf.global_variables_initializer())
+            loss, _ = sess.run([self.loss, self.optimizeOp],
+                                   feed_dict={self.rawBatch: inBatch})
+            printt(loss)
+            loss, _ = sess.run([self.loss, self.optimizeOp],
+                                   feed_dict={self.rawBatch: inBatch})
+            printt(loss)
+
 def printt(t):
     ''' Print tensor '''
     print(type(t))
@@ -127,7 +148,20 @@ def test():
     #model.evalInputs(batch)
     #model.evalNetwork(batch)
     #model.evalOutput(batch)
-    model.evalLoss(batch)
+    #model.evalLoss(batch)
+    model.evalOptimizer(batch)
+
+def testTrain():
+    # init network
+    # create train / test split
+    # create batch generator on train
+    # for each batch
+    #   convert batch chars to char indices, add EOF symbol
+    #   run optimizer op
+    #   calculate loss on train batch
+    #   calculate loss on test set
+    # calculate loss on valid set
+    pass
 
 if __name__ == '__main__':
     test()
