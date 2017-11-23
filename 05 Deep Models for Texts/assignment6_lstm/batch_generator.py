@@ -4,11 +4,13 @@ from assignment6_lstm.dataset import char2id, id2char, vocabulary_size, \
 import numpy as np
 
 class BatchGenerator(object):
-    def __init__(self, text, batch_size = 64, num_unrollings = 10):
+
+    def __init__(self, text, batch_size = 64, num_unrollings = 10, char2id=char2id):
         self._text = text
         self._text_size = len(text)
         self._batch_size = batch_size
         self._num_unrollings = num_unrollings
+        self._char2id = char2id
         segment = self._text_size // batch_size
         self._cursor = [offset * segment for offset in range(batch_size)]
         self._last_batch = self._next_batch()
@@ -17,7 +19,7 @@ class BatchGenerator(object):
         """Generate a single batch from the current cursor position in the data."""
         batch = np.zeros(shape=(self._batch_size, vocabulary_size), dtype=np.float)
         for b in range(self._batch_size):
-            batch[b, char2id(self._text[self._cursor[b]])] = 1.0
+            batch[b, self._char2id(self._text[self._cursor[b]])] = 1.0
             self._cursor[b] = (self._cursor[b] + 1) % self._text_size
         return batch
 
@@ -32,7 +34,7 @@ class BatchGenerator(object):
         return batches
 
 
-def characters(probabilities):
+def characters(probabilities, id2char=id2char):
     """Turn a 1-hot encoding or a probability distribution over the possible
     characters back into its (most likely) character representation."""
     return [id2char(c) for c in np.argmax(probabilities, 1)]
