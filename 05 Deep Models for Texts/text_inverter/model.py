@@ -30,9 +30,23 @@ class InvertingLSTM():
         '''
         with tf.name_scope('inputs'):
             self.rawBatch = tf.placeholder(tf.int32, (self.batchSize, self.seqSize), name='raw_batch')
-            self.inputBatch = tf.one_hot(self.rawBatch, self.alphabetSize, name='input_batch')
+            self.rawBatchEOS = self.__addEOSchars(self.rawBatch)
+            # conseq. of adding EOS char (to alphabet and sequences)
+            self.alphabetSize += 1; self.seqSize += 1
+            self.inputBatch = tf.one_hot(self.rawBatchEOS, self.alphabetSize, name='input_batch')
         with tf.name_scope('correct_output'):
             self.correctOutBatch = tf.reverse(self.inputBatch, [1], name='correct_output')
+
+    def __addEOSchars(self, rawBatch):
+        '''
+        Add End-Of-Sequence chars (char indices) to the end of each input sequence.
+        The EOS index will be self.alphabetSize (last letter + 1), and
+            self.alphabetSize will be increased by 1
+        :return:
+        '''
+        paddings = [[0, 0], [0, 1]]
+        rawBatch = tf.pad(rawBatch, paddings, constant_values=self.alphabetSize)
+        return rawBatch
 
     def __buildNetwork(self):
         def buildLSTMCell():
@@ -101,11 +115,9 @@ class InvertingLSTM():
     def evalNetwork(self, inBatch):
         with tf.Session() as sess:
             sess.run(tf.global_variables_initializer())
-            cout, cstate, dout, dstate = sess.run([self.cout, self.cstate,
-                                     self.dout, self.dstate],
+            cout, cstate, dout = sess.run([self.cout, self.cstate, self.dout],
                                     feed_dict={self.rawBatch: inBatch})
-            printt(cout); printt(cstate)
-            printt(dout); printt(dstate)
+            printt(cout); printt(cstate); printt(dout)
             print(tf.trainable_variables())
 
     def evalOutput(self, inBatch):
@@ -145,13 +157,13 @@ def test():
         [ 1, 2, 0, 2 ],
         [ 2, 0, 1, 0 ]
     ]
-    #model.evalInputs(batch)
-    #model.evalNetwork(batch)
-    #model.evalOutput(batch)
-    #model.evalLoss(batch)
-    model.evalOptimizer(batch)
+    # model.evalInputs(batch)
+    # model.evalNetwork(batch)
+    # model.evalOutput(batch)
+    # model.evalLoss(batch)
+    # model.evalOptimizer(batch)
 
-def testTrain():
+def testTrain(seqSize=10, batchSize=128, networkSize=30):
     # init network
     # create train / test split
     # create batch generator on train
@@ -161,7 +173,30 @@ def testTrain():
     #   calculate loss on train batch
     #   calculate loss on test set
     # calculate loss on valid set
-    pass
+    from assignment6_lstm.batch_generator import BatchGenerator, batches2string
+    from assignment6_lstm.dataset import validTrainSplit, vocabulary_size, char2id
+    def indexString(s): return [ char2id(c) for c in s ]
+    valid, train = validTrainSplit()
+    batchgen = BatchGenerator(train, num_unrollings=seqSize, batch_size=batchSize)
+    model = InvertingLSTM(seqSize, alphabetSize=vocabulary_size, batchSize=batchSize,
+                          networkSize=networkSize, learningRate=0.001)
+    with tf.Session() as sess:
+        sess.run(tf.global_variables_initializer())
+        for i in range(200):
+            inBatches = batches2string(batchgen.next())
+            # print(type(inBatch), inBatch)
+            # s = inBatch[0]
+            # print(type(s), s)
+            inBatch = [ indexString(s) for s in inBatches ]
+            #print(inBatch)
+            opt, cost, loss = sess.run([model.optimizeOp, model.cost, model.loss],
+                                   feed_dict={model.rawBatch: inBatch})
+            #print(i)
+            print(i, cost)
+            #print(loss)
+
+
 
 if __name__ == '__main__':
-    test()
+    #test()
+    testTrain()
