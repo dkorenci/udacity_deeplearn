@@ -3,6 +3,10 @@ from tensorflow.contrib.rnn import BasicLSTMCell
 from tensorflow.contrib.rnn import DropoutWrapper
 from tensorflow.contrib.rnn import MultiRNNCell
 
+from assignment6_lstm.dataset import validTrainSplit, vocabulary_size, char2id, id2char
+
+import numpy as np
+
 class InvertingLSTM():
 
     def __init__(self, seqSize, alphabetSize, batchSize, networkSize,
@@ -34,6 +38,7 @@ class InvertingLSTM():
             # conseq. of adding EOS char (to alphabet and sequences)
             self.alphabetSize += 1; self.seqSize += 1
             self.inputBatch = tf.one_hot(self.rawBatchEOS, self.alphabetSize, name='input_batch')
+            self.keepProb = tf.placeholder(tf.float32, name='keep_prob')
         with tf.name_scope('correct_output'):
             self.correctOutBatch = tf.reverse(self.inputBatch, [1], name='correct_output')
 
@@ -52,7 +57,7 @@ class InvertingLSTM():
         def buildLSTMCell():
             def cell():
                 c = BasicLSTMCell(num_units=self.networkSize)
-                c = DropoutWrapper(c, output_keep_prob=self.dropout)
+                c = DropoutWrapper(c, output_keep_prob=self.keepProb)
                 return c
 
             if self.depth > 1:
@@ -174,28 +179,63 @@ def testTrain(seqSize=10, batchSize=128, networkSize=30):
     #   calculate loss on test set
     # calculate loss on valid set
     from assignment6_lstm.batch_generator import BatchGenerator, batches2string
-    from assignment6_lstm.dataset import validTrainSplit, vocabulary_size, char2id
+    from assignment6_lstm.probability_utils import logprob
+    import numpy as np
+    # batch conversion from udacity format
     def indexString(s): return [ char2id(c) for c in s ]
+    def batchAdapt(b):
+        return [indexString(s) for s in batches2string(b)]
     valid, train = validTrainSplit()
-    batchgen = BatchGenerator(train, num_unrollings=seqSize, batch_size=batchSize)
+    trainBatches = BatchGenerator(train, num_unrollings=seqSize-1, batch_size=batchSize)
+    validBatches = BatchGenerator(valid, num_unrollings=seqSize-1, batch_size=batchSize)
     model = InvertingLSTM(seqSize, alphabetSize=vocabulary_size, batchSize=batchSize,
-                          networkSize=networkSize, learningRate=0.001)
+                          networkSize=networkSize, learningRate=0.002,
+                          depth=2)
+    print(len(train), len(valid))
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
-        for i in range(200):
-            inBatches = batches2string(batchgen.next())
-            # print(type(inBatch), inBatch)
-            # s = inBatch[0]
-            # print(type(s), s)
-            inBatch = [ indexString(s) for s in inBatches ]
+        for i in range(10000):
+            inBatch = batchAdapt(trainBatches.next())
             #print(inBatch)
             opt, cost, loss = sess.run([model.optimizeOp, model.cost, model.loss],
-                                   feed_dict={model.rawBatch: inBatch})
-            #print(i)
-            print(i, cost)
-            #print(loss)
+                                   feed_dict={model.rawBatch: inBatch,
+                                              model.keepProb: 0.5})
+            if i % 100 == 0:
+                print(i, cost)
+                validLogprob = 0.0
+                for j in range(50):
+                    b = batchAdapt(validBatches.next())
+                    predict, correct = sess.run([model.predictions, model.outputReshaped],
+                                                feed_dict={model.rawBatch: b,
+                                                           model.keepProb: 1.0})
+                    validLogprob = validLogprob + logprob(predict, correct)
+                    if j == 1:
+                        #print(predict)
+                        print(ind2str(sample(predict)))
+                        #print(np.argmax(correct, 0))
+                        print(ind2str(np.argmax(correct, 1)))
+                print('Validation set perplexity: %.2f' % float(np.exp(
+                        validLogprob / len(valid))))
 
+def sample(predictions):
+    from numpy.random import multinomial as multi
+    from sklearn.preprocessing import normalize
+    from numpy.random import choice
+    chars = np.zeros(predictions.shape[0])
+    predictions = normalize(predictions, 'l1', 1)
+    for i in range(len(chars)):
+        p = predictions[i]
+        if sum(p[:-1] > 1.0): p = p * 0.98
+        #chars[i] = np.argmax(multi(1, p))
+        chars[i] = choice(range(len(p)), 1, False, p)[0]
+    return chars
 
+def ind2str(ind):
+    return ''.join(val2char(int(i)) for i in ind)
+
+def val2char(v):
+    if v < vocabulary_size: return id2char(v)
+    else: return '.'
 
 if __name__ == '__main__':
     #test()
