@@ -59,12 +59,10 @@ class InvertingLSTM():
                 c = BasicLSTMCell(num_units=self.networkSize)
                 c = DropoutWrapper(c, output_keep_prob=self.keepProb)
                 return c
-
-            if self.depth > 1:
-                cell = MultiRNNCell([cell() for _ in range(self.depth)])
-            else:
-                cell = cell()
+            if self.depth > 1: cell = MultiRNNCell([cell() for _ in range(self.depth)])
+            else: cell = cell()
             return cell
+
         with tf.name_scope('coding_network'), tf.variable_scope('coding'):
             #with tf.variable_scope("model", reuse=True):
             ccell = buildLSTMCell()
@@ -168,7 +166,14 @@ def test():
     # model.evalLoss(batch)
     # model.evalOptimizer(batch)
 
-def testTrain(seqSize=10, batchSize=128, networkSize=30):
+def visualizeGraph():
+    model = InvertingLSTM(4, 3, 3, 5)
+    with tf.Session() as sess:
+        sess.run(tf.global_variables_initializer())
+        file_writer = tf.summary.FileWriter('network_graph', sess.graph)
+        file_writer.close()
+
+def testTrain(seqSize=10, batchSize=128, networkSize=50, depth=1):
     # init network
     # create train / test split
     # create batch generator on train
@@ -189,8 +194,7 @@ def testTrain(seqSize=10, batchSize=128, networkSize=30):
     trainBatches = BatchGenerator(train, num_unrollings=seqSize-1, batch_size=batchSize)
     validBatches = BatchGenerator(valid, num_unrollings=seqSize-1, batch_size=batchSize)
     model = InvertingLSTM(seqSize, alphabetSize=vocabulary_size, batchSize=batchSize,
-                          networkSize=networkSize, learningRate=0.002,
-                          depth=2)
+                          networkSize=networkSize, learningRate=0.002, depth=depth)
     print(len(train), len(valid))
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
@@ -239,4 +243,5 @@ def val2char(v):
 
 if __name__ == '__main__':
     #test()
-    testTrain()
+    #testTrain(networkSize=100)
+    visualizeGraph()
